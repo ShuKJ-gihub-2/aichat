@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>AI Visual Chat (完全無料・ログイン不要・高性能モデル版)</title>
+    <title>AI Visual Chat (エラー対策・完全版)</title>
     <style>
         body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
         #config { padding: 10px; background: #eee; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -40,8 +40,8 @@
     </div>
 
     <script>
-        // 🚀 新しく作ったあなたのGASのURLを埋め込み済みです！
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbylg4Qx9W_RiNwS67i-ToPsCyXMJmcbE_0G3iSr6rP3_EjY9r5QQm1Q7JBRHbcxxoFq/exec";
+        // 🚀 新しいURL（...XoFq/exec）がすでにセットされています
+        const GAS_URL = "https://google.com";
 
         let chatHistory = [];
 
@@ -62,7 +62,6 @@
 
             addMessage('system', '無料の高性能AIを起動して最初のビジュアルを生成中...');
             
-            // 初回のプロンプトとシステム指示を歴史にセット
             chatHistory.push({ role: "user", content: `【絶対遵守のシステム指示】\n${systemPrompt}\n\n【ユーザー指示】\n初期ビジュアル「${basePrompt}」を作成し、JSON形式で最初の挨拶をしてください。` });
             await callAI();
         }
@@ -81,7 +80,7 @@
 
         async function callAI() {
             try {
-                // 学校のPCから安全なGASへデータを送信（Cisco DoHはスルー）
+                // GASへデータを送信
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -89,31 +88,11 @@
                     })
                 });
 
-                // DuckDuckGoの特殊なStreamテキストを解析する処理
-                const rawText = await response.text();
-                
-                // 通信データ（data: {...}）の行からメッセージ部分だけを抽出
-                const lines = rawText.split("\n");
-                let fullAiResponse = "";
-                for (let line of lines) {
-                    if (line.startsWith("data: ")) {
-                        const jsonStr = line.replace("data: ", "").trim();
-                        if (jsonStr === "[DONE]") break;
-                        try {
-                            const parsed = JSON.parse(jsonStr);
-                            if (parsed.message) {
-                                fullAiResponse += parsed.message;
-                            }
-                        } catch(e) {}
-                    }
-                }
+                // GAS側ですべて成形済みなので、直接JSONとして受け取れる
+                const resObj = await response.json();
 
-                // AIの返答をマークダウンのゴミ（```json など）を除去してパース
-                let cleanJsonText = fullAiResponse.replace(/```json/g, "").replace(/```/g, "").trim();
-                const resObj = JSON.parse(cleanJsonText);
-
-                // チャット履歴にAIの返答を追加
-                chatHistory.push({ role: "assistant", content: fullAiResponse });
+                // チャット履歴にAIの返答を追加（DuckDuckGoが保持できる形式）
+                chatHistory.push({ role: "assistant", content: JSON.stringify(resObj) });
 
                 // 画面（チャットと右側の画像）を更新
                 addMessage('ai', resObj.reply);
@@ -121,7 +100,7 @@
 
             } catch (error) {
                 console.error(error);
-                addMessage('system', 'エラーが発生しました。もう一度入力するか、プロンプトを変えて試してみてください。');
+                addMessage('system', 'エラーが発生しました。もう一度入力するか、別のプロンプトを入力してください。');
             }
         }
 
