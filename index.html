@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>AI Visual Chat (Google GAS版)</title>
+    <title>AI Visual Chat (完全無料・ログイン不要・高性能モデル版)</title>
     <style>
         body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        #config { padding: 10px; background: #eee; display: flex; gap: 10px; flex-wrap: wrap; }
+        #config { padding: 10px; background: #eee; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         #main { display: flex; flex: 1; overflow: hidden; }
         #chat-box { width: 50%; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #ccc; }
         #messages { flex: 1; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background: #fff; }
@@ -21,16 +21,16 @@
 <body>
 
     <div id="config">
-        <input type="password" id="api-key" placeholder="Gemini APIキーを入力" style="width: 200px;">
-        <input type="text" id="base-prompt" placeholder="初期ビジュアル（例: 近未来の都市）" value="近未来の都市" style="width: 200px;">
-        <button onclick="initApp()">アプリ起動</button>
+        <span style="font-weight: bold; color: #333;">初期設定：</span>
+        <input type="text" id="base-prompt" placeholder="初期ビジュアル（例: サイバーパンクな都市）" value="サイバーパンクな都市" style="width: 250px;">
+        <button onclick="initApp()" style="background: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px;">AIチャットを起動する</button>
     </div>
 
     <div id="main">
         <div id="chat-box">
             <div id="messages"></div>
             <div style="display:flex; gap:10px;">
-                <input type="text" id="user-input" placeholder="メッセージを入力..." style="flex:1;" disabled>
+                <input type="text" id="user-input" placeholder="AIにメッセージを送る..." style="flex:1;" disabled onkeypress="if(event.keyCode==13) sendMessage()">
                 <button id="send-btn" onclick="sendMessage()" disabled>送信</button>
             </div>
         </div>
@@ -40,31 +40,31 @@
     </div>
 
     <script>
-        // 🚀 あなたが生成したGASのウェブアプリURLを埋め込み済みです
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzoNCqxOzrsozdBbJCZYT6_Ld_XUxuGfZ7oF4YP4HH28z2kUgW6pm1e2owKtFeZ_wG6/exec";
+        // 🚀 新しく作ったあなたのGASのURLを埋め込み済みです！
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbylg4Qx9W_RiNwS67i-ToPsCyXMJmcbE_0G3iSr6rP3_EjY9r5QQm1Q7JBRHbcxxoFq/exec";
 
         let chatHistory = [];
 
-        const systemPrompt = `
-        あなたはユーザーの指示に合わせて、会話と「右側の画面に表示するSVGイラスト」を同時に生成するAIです。
-        返答は必ず以下のJSONフォーマットのみで出力してください。他の挨拶や解説テキストは絶対に含めないでください。
-        
-        {
-          "reply": "ユーザーへの返答テキストメッセージ（日本語）",
-          "svg": "<svg viewBox='0 0 500 500' xmlns='http://w3.org'>...会話の状況に合わせたオシャレでシンプルなSVGコード。必ず閉じること...</svg>"
-        }
-        `;
+        const systemPrompt = `あなたはユーザーの指示に合わせて、会話と「右側の画面に表示するSVGイラスト」を同時に生成するAIです。
+返答は必ず以下のJSONフォーマットのみで出力してください。他の挨拶や解説テキストは絶対に含めないでください。
+
+{
+  "reply": "ユーザーへの返答テキストメッセージ（日本語）",
+  "svg": "<svg viewBox='0 0 500 500' xmlns='http://w3.org'>...会話の状況に合わせたオシャレでシンプルなSVGコード。必ず閉じること...</svg>"
+}
+`;
 
         async function initApp() {
-            const apiKey = document.getElementById('api-key').value;
             const basePrompt = document.getElementById('base-prompt').value;
-            if(!apiKey) return alert('Gemini APIキーを入力してください');
 
             document.getElementById('user-input').disabled = false;
             document.getElementById('send-btn').disabled = false;
 
-            addMessage('system', '初期ビジュアルを生成中（これには10秒ほどかかります）...');
-            await callAI(`設定された初期ビジュアル「${basePrompt}」を作成し、最初の挨拶をしてください。`);
+            addMessage('system', '無料の高性能AIを起動して最初のビジュアルを生成中...');
+            
+            // 初回のプロンプトとシステム指示を歴史にセット
+            chatHistory.push({ role: "user", content: `【絶対遵守のシステム指示】\n${systemPrompt}\n\n【ユーザー指示】\n初期ビジュアル「${basePrompt}」を作成し、JSON形式で最初の挨拶をしてください。` });
+            await callAI();
         }
 
         async function sendMessage() {
@@ -75,50 +75,53 @@
             inputEl.value = '';
             addMessage('user', text);
 
-            await callAI(text);
+            chatHistory.push({ role: "user", content: text });
+            await callAI();
         }
 
-        async function callAI(userText) {
-            const apiKey = document.getElementById('api-key').value;
-            
-            // 履歴に追加
-            chatHistory.push({ role: "user", parts: [{ text: userText }] });
-
-            // Gemini APIの要求するデータ構造を作成
-            const geminiPayload = {
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                contents: chatHistory,
-                generationConfig: {
-                    responseMimeType: "application/json" // JSON出力を強制
-                }
-            };
-
+        async function callAI() {
             try {
-                // 学校のPCからはGASのURLに向けて通信する（Cisco DoHはスルーする）
+                // 学校のPCから安全なGASへデータを送信（Cisco DoHはスルー）
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({
-                        apiKey: apiKey,
-                        payload: geminiPayload
+                        payload: chatHistory
                     })
                 });
 
-                const data = await response.json();
+                // DuckDuckGoの特殊なStreamテキストを解析する処理
+                const rawText = await response.text();
                 
-                // Geminiのレスポンスからテキストを抽出してJSONとしてパース
-                const rawJsonText = data.candidates.content.parts[0].text;
-                const resObj = JSON.parse(rawJsonText);
+                // 通信データ（data: {...}）の行からメッセージ部分だけを抽出
+                const lines = rawText.split("\n");
+                let fullAiResponse = "";
+                for (let line of lines) {
+                    if (line.startsWith("data: ")) {
+                        const jsonStr = line.replace("data: ", "").trim();
+                        if (jsonStr === "[DONE]") break;
+                        try {
+                            const parsed = JSON.parse(jsonStr);
+                            if (parsed.message) {
+                                fullAiResponse += parsed.message;
+                            }
+                        } catch(e) {}
+                    }
+                }
+
+                // AIの返答をマークダウンのゴミ（```json など）を除去してパース
+                let cleanJsonText = fullAiResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+                const resObj = JSON.parse(cleanJsonText);
 
                 // チャット履歴にAIの返答を追加
-                chatHistory.push({ role: "model", parts: [{ text: rawJsonText }] });
+                chatHistory.push({ role: "assistant", content: fullAiResponse });
 
-                // 画面を更新
+                // 画面（チャットと右側の画像）を更新
                 addMessage('ai', resObj.reply);
                 document.getElementById('image-container').innerHTML = resObj.svg;
 
             } catch (error) {
                 console.error(error);
-                addMessage('system', 'エラーが発生しました。APIキー、GASのURL、またはプロンプトを見直してください。');
+                addMessage('system', 'エラーが発生しました。もう一度入力するか、プロンプトを変えて試してみてください。');
             }
         }
 
