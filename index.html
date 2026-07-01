@@ -82,7 +82,9 @@
     </div>
     <script>
         const MY_HF_KEY = "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";
-        const API_URL = "https://huggingface.co/models/meta-llama/Llama-3.3-70B-Instruct";
+        const urlHost = "https://api-inference.huggingface.co/";
+        const urlModel = "models/meta-llama/Llama-3.3-70B-Instruct";
+        const API_URL = urlHost + urlModel;
 
         let charConfig = {
             gender: "女の子",
