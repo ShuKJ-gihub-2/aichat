@@ -80,3 +80,115 @@
             <div id="image-container"></div>
         </div>
     </div>
+    <script>
+        const MY_HF_KEY = "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";
+        const API_URL = "https://huggingface.co";
+
+        let charConfig = {
+            gender: "女の子",
+            hair: "黒髪ロングのストレート",
+            outfit: "サイバーパンクなジャケットとゴーグル"
+        };
+        let chatHistory = [];
+
+        function selectOpt(element, type, value) {
+            const buttons = element.parentElement.querySelectorAll('.btn-opt');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            charConfig[type] = value;
+        }
+
+        async function initApp() {
+            const customSetting = document.getElementById('custom-setting').value;
+            document.getElementById('creator-screen').style.display = 'none';
+            document.getElementById('main-screen').style.display = 'flex';
+            addMessage('system', 'キャラクターの外見をデザイン中（10秒ほどかかります）...');
+
+            const systemPrompt = `あなたはユーザーが作成した以下のオリジナルキャラクターとして振る舞い、チャットを行ってください。
+【キャラクター設定】
+・性別タイプ: ${charConfig.gender}
+・髪型・髪色: ${charConfig.hair}
+・服装スタイル: ${charConfig.outfit}
+・詳しい性格や背景: ${customSetting}
+【システム命令】
+返答は必ず以下のJSONフォーマットのみで出力してください。他の挨拶や解説テキストは絶対に含めないでください。
+イラストを描くときは、上記の「髪型」「服装」「性別」の設定を必ず忠実に再現したオシャレでカラフルなアニメ風SVGアートを1枚描いてください。
+{
+  "reply": "キャラクターとしてのセリフ・メッセージ（日本語）",
+  "svg": "<svg viewBox='0 0 500 500' xmlns='http://w3.org'><rect width='100%' height='100%' fill='#e0e7ff'/><circle cx='250' cy='220' r='60' fill='#818cf8'/><path d='M200 350 C200 280, 300 280, 300 350 Z' fill='#4f46e5'/></svg>"
+}`;
+
+            chatHistory.push({ 
+                role: "user", 
+                content: `【システム設定】\n${systemPrompt}\n\n【指示】\nあなた（上記のキャラクター設定）の最初の立ち絵（SVG）を作成し、キャラクターとしての最初の挨拶をしてください。` 
+            });
+            await callAI();
+        }
+
+        async function sendMessage() {
+            const inputEl = document.getElementById('user-input');
+            const text = inputEl.value.trim();
+            if(!text) return;
+            inputEl.value = '';
+            addMessage('user', text);
+            chatHistory.push({ role: "user", content: text });
+            await callAI();
+        }
+
+        async function callAI() {
+            try {
+                let fullPrompt = "";
+                for (let msg of chatHistory) {
+                    if (msg.role === "user") {
+                        fullPrompt += "\nUser: " + msg.content;
+                    } else {
+                        fullPrompt += "\nAssistant: " + msg.content;
+                    }
+                }
+                fullPrompt += "\nAssistant: ";
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + MY_HF_KEY
+                    },
+                    body: JSON.stringify({
+                        inputs: fullPrompt,
+                        parameters: { max_new_tokens: 1000, return_full_text: false }
+                    })
+                });
+
+                const parsedRes = await response.json();
+                let aiText = "";
+                if (Array.isArray(parsedRes) && parsedRes.length > 0) {
+                    aiText = parsedRes.generated_text;
+                } else if (parsedRes.generated_text) {
+                    aiText = parsedRes.generated_text;
+                } else {
+                    throw new Error(JSON.stringify(parsedRes));
+                }
+
+                let cleanJsonText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
+                const resObj = JSON.parse(cleanJsonText);
+                chatHistory.push({ role: "assistant", content: aiText });
+                addMessage('ai', resObj.reply);
+                document.getElementById('image-container').innerHTML = resObj.svg;
+            } catch (error) {
+                console.error(error);
+                addMessage('system', 'キャラクターの描画に失敗しました。もう一度入力してみてください。');
+            }
+        }
+
+        function addMessage(sender, text) {
+            const msgDiv = document.getElementById('messages');
+            const p = document.createElement('p');
+            p.className = sender === 'user' ? 'user-msg' : sender === 'ai' ? 'ai-msg' : 'sys-msg';
+            p.innerText = text;
+            msgDiv.appendChild(p);
+            msgDiv.scrollTop = msgDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
+
