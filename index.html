@@ -5,8 +5,6 @@
     <title>AIキャラクリ・ビジュアルチャット</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; background: #f5f7fb; color: #333; display: flex; flex-direction: column; height: 100vh; }
-        
-        /* キャラ作成（Days AI風）画面 */
         #creator-screen { max-width: 600px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .screen-title { text-align: center; margin-bottom: 25px; color: #4a5568; font-size: 24px; font-weight: bold; }
         .option-group { margin-bottom: 20px; }
@@ -18,20 +16,15 @@
         .input-custom { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font-size: 14px; }
         #start-btn { width: 100%; padding: 14px; background: #6366f1; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 12px rgba(99,102,241,0.2); }
         #start-btn:hover { background: #4f46e5; }
-
-        /* チャット画面（初期は非表示） */
         #main-screen { display: none; flex: 1; overflow: hidden; }
         #chat-box { width: 45%; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #e2e8f0; background: #fff; }
         #messages { flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 15px; background: #f8fafc; }
         #visual-box { width: 55%; display: flex; justify-content: center; align-items: center; background: #f1f5f9; padding: 20px; position: relative; }
         #image-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
         #image-container svg { max-width: 100%; max-height: 100%; width: auto; height: auto; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); background: white; }
-        
-        /* チャットパーツ */
         .user-msg { color: #fff; background: #6366f1; text-align: left; margin: 8px 0 8px auto; padding: 10px 14px; border-radius: 16px 16px 2px 16px; max-width: 75%; width: fit-content; font-size: 14px; font-weight: bold; }
         .ai-msg { color: #1e293b; background: #fff; text-align: left; margin: 8px auto 8px 0; padding: 10px 14px; border-radius: 16px 16px 16px 2px; max-width: 75%; width: fit-content; font-size: 14px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .sys-msg { color: #64748b; font-size: 0.85em; text-align: center; margin: 10px 0; font-style: italic; }
-        
         .input-area { display: flex; gap: 10px; }
         #user-input { flex: 1; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; }
         #send-btn { padding: 0 20px; background: #6366f1; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
@@ -40,10 +33,8 @@
 </head>
 <body>
 
-    <!-- 🎨 Days AI風 キャラクター作成画面 -->
     <div id="creator-screen">
         <div class="screen-title">✨ AIキャラクター生成</div>
-        
         <div class="option-group">
             <span class="group-label">性別・タイプ</span>
             <div class="select-buttons" data-type="gender">
@@ -52,7 +43,6 @@
                 <button class="btn-opt" onclick="selectOpt(this, 'gender', 'ロボット・人外')">人外・メカ</button>
             </div>
         </div>
-
         <div class="option-group">
             <span class="group-label">髪型・髪色</span>
             <div class="select-buttons" data-type="hair">
@@ -62,7 +52,6 @@
                 <button class="btn-opt" onclick="selectOpt(this, 'hair', '青髪のマッシュボブ')">青髪ボブ</button>
             </div>
         </div>
-
         <div class="option-group">
             <span class="group-label">服装・ファッション</span>
             <div class="select-buttons" data-type="outfit">
@@ -72,16 +61,13 @@
                 <button class="btn-opt" onclick="selectOpt(this, 'outfit', 'カジュアルなパーカーとヘッドホン')">ストリート</button>
             </div>
         </div>
-
         <div class="option-group">
             <span class="group-label">性格・シチュエーション設定（自由に入力）</span>
-            <input type="text" id="custom-setting" class="input-custom" placeholder="例：ツンデレな幼馴染、宇宙船のAI、無口な暗殺者など" value="優しくてちょっとミステリアスなAIアシスタント">
+            <input type="text" id="custom-setting" class="input-custom" value="優しくてちょっとミステリアスなAIアシスタント">
         </div>
-
         <button id="start-btn" onclick="initApp()">このキャラを生成してチャット開始</button>
     </div>
 
-    <!-- 💬 チャット画面（最初は隠れている） -->
     <div id="main-screen">
         <div id="chat-box">
             <div id="messages"></div>
@@ -94,112 +80,3 @@
             <div id="image-container"></div>
         </div>
     </div>
-
-    <script>
-        // 🚀 あなたが新しく作ったGASのURLです
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbylg4Qx9W_RiNwS67i-ToPsCyXMJmcbE_0G3iSr6rP3_EjY9r5QQm1Q7JBRHbcxxoFq/exec";
-
-        // キャラクリ選択データ
-        let charConfig = {
-            gender: "女の子",
-            hair: "黒髪ロングのストレート",
-            outfit: "サイバーパンクなジャケットとゴーグル"
-        };
-
-        let chatHistory = [];
-
-        // ボタン選択時の処理
-        function selectOpt(element, type, value) {
-            const buttons = element.parentElement.querySelectorAll('.btn-opt');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            element.classList.add('active');
-            charConfig[type] = value;
-        }
-
-        // キャラ確定・アプリ起動
-        async function initApp() {
-            const customSetting = document.getElementById('custom-setting').value;
-            
-            // 画面を切り替える
-            document.getElementById('creator-screen').style.display = 'none';
-            document.getElementById('main-screen').style.display = 'flex';
-
-            addMessage('system', 'あなたが作成したキャラクターの外見をデザイン中（10秒ほどかかります）...');
-
-            // AIに対する絶対命令プロンプト
-            const systemPrompt = `あなたはユーザーが作成した以下のオリジナルキャラクターとして振る舞い、チャットを行ってください。
-            
-【キャラクター設定】
-・性別タイプ: ${charConfig.gender}
-・髪型・髪色: ${charConfig.hair}
-・服装スタイル: ${charConfig.outfit}
-・詳しい性格や背景: ${customSetting}
-
-【システム命令】
-返答は必ず以下のJSONフォーマットのみで出力してください。他の挨拶や解説テキストは絶対に含めないでください。
-イラストを描くときは、上記の「髪型」「服装」「性別」の設定を必ず忠実に再現したオシャレなSVGアートを1枚描いてください。
-            
-{
-  "reply": "キャラクターとしてのセリフ・メッセージ（日本語）",
-  "svg": "<svg viewBox='0 0 500 500' xmlns='http://w3.org'>...会話の状況やあなたの喜怒哀楽に合わせたキャラクターのシンプルなアニメ風SVGコード。背景も色をつけてください。必ずタグを閉じること...</svg>"
-}`;
-
-            // 初回リクエストを送信
-            chatHistory.push({ 
-                role: "user", 
-                content: `【システム設定】\n${systemPrompt}\n\n【指示】\nあなた（上記のキャラクター設定）の最初の立ち絵（SVG）を作成し、キャラクターとしての最初の挨拶をしてください。` 
-            });
-            await callAI();
-        }
-
-        async function sendMessage() {
-            const inputEl = document.getElementById('user-input');
-            const text = inputEl.value.trim();
-            if(!text) return;
-
-            inputEl.value = '';
-            addMessage('user', text);
-
-            chatHistory.push({ role: "user", content: text });
-            await callAI();
-        }
-
-        // 🛠️ エラーの原因だった解析処理をGASの仕様に合わせて最適化しました
-        async function callAI() {
-            try {
-                // 安全なGASへデータを送信（Ciscoは検知不能）
-                const response = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ payload: chatHistory })
-                });
-
-                // GAS側ですべて成形済みなので、直接JSONとしてスッキリ受け取る
-                const resObj = await response.json();
-
-                // チャット履歴にAIの返答を追加（次回の会話の文脈維持用）
-                chatHistory.push({ role: "assistant", content: JSON.stringify(resObj) });
-
-                // 画面を更新（チャットテキストと右側のSVGイラスト）
-                addMessage('ai', resObj.reply);
-                document.getElementById('image-container').innerHTML = resObj.svg;
-
-            } catch (error) {
-                console.error(error);
-                addMessage('system', 'キャラクターの描画に失敗しました。もう一度発言してみてください。');
-            }
-        }
-
-        function addMessage(sender, text) {
-            const msgDiv = document.getElementById('messages');
-            const p = document.createElement('p');
-            if (sender === 'user') p.className = 'user-msg';
-            else if (sender === 'ai') p.className = 'ai-msg';
-            else p.className = 'sys-msg';
-            
-            p.innerText = sender === 'user' ? text : sender === 'ai' ? text : text;
-            msgDiv.appendChild(p);
-            msgDiv.scrollTop = msgDiv.scrollHeight;
-        }
-    </script>
-</body>
-</html>
